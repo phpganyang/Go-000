@@ -17,7 +17,7 @@ func main() {
 	group, _ := errgroup.WithContext(context.Background())
 	sig := make(chan os.Signal, 1)
 	stop := make(chan struct{})
-
+	start := make(chan struct{})
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
 
 	//处理信号
@@ -39,16 +39,21 @@ func main() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 			defer cancel()
 			err := server.Shutdown(ctx)
+			close(start)
 			fmt.Printf("服务关闭原因：%v\n", err)
 		}()
+
 		fmt.Println("服务开始")
+		close(start)
 		return server.ListenAndServe()
 	})
 
 	go func() {
-		fmt.Println("模拟请求数据")
-		time.Sleep(time.Second * 10)
+		<-start
+		fmt.Println("模拟请求数据") //首先执行
+		time.Sleep(time.Second * 3)
 		close(stop)
+
 	}()
 
 	if err := group.Wait(); err != nil {
