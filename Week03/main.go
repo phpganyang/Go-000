@@ -12,63 +12,46 @@ import (
 	"time"
 )
 
-type myHandler struct{}
-
 func main() {
-	sig := make(chan os.Signal, 1) //go中信号通知机制可以通过channel发送实现
-	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM,
-		syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
-	group, _ := errgroup.WithContext(context.Background())
-	//启动一个http服务
-	group.Go(func() error {
-		err := StartHttpServer()
-		if err != nil {
-			return err
+
+	g, _ := errgroup.WithContext(context.Background())
+	sig := make(chan os.Signal, 1)
+	stop := make(chan struct{})
+
+	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+
+	//处理信号
+	g.Go(func() error {
+		sig := <-sig
+		fmt.Println(sig)
+		if sig == syscall.SIGINT {
+			close(stop)
 		}
-		return nil
+		fmt.Println("信号监听结束.")
+		return errors.New("sigal error")
+	})
+	server := http.Server{Addr: "127.0.0.1:8080"}
+	g.Go(func() error {
+		go func() {
+			<-stop
+			sig <- syscall.SIGTERM
+			fmt.Println("服务中断")
+			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+			defer cancel()
+			err := server.Shutdown(ctx)
+			fmt.Printf("服务关闭原因：%v\n", err)
+		}()
+		fmt.Println("服务开始")
+		return server.ListenAndServe()
 	})
 
-	//监听信号
-	group.Go(func() error {
-		for s := range sig {
-			switch s {
-			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				fmt.Println("Program Exit....", s)
-				return errors.New("haha,exit")
-			case syscall.SIGUSR1:
-				fmt.Println("sigusr1", s)
-			case syscall.SIGUSR2:
-				fmt.Println("sigusr2", s)
-			default:
-				fmt.Println("other sig")
-			}
-		}
-		return nil
-	})
+	go func() {
+		fmt.Println("延迟五秒")
+		time.Sleep(time.Second * 5)
+		close(stop)
+	}()
 
-	if err := group.Wait(); err != nil {
-		fmt.Println("app start success")
-	} else {
-		fmt.Println("app fail" + err.Error())
+	if err := g.Wait(); err != nil {
+		fmt.Printf("gorutine退出原因:%v\n", err)
 	}
-}
-func StartHttpServer() error {
-	mux := http.NewServeMux()
-	mux.Handle("/", &myHandler{})
-	mux.HandleFunc("/bye", bye)
-	server := &http.Server{
-		Addr:         ":9999",
-		WriteTimeout: time.Second * 3,
-		Handler:      mux,
-	}
-	return server.ListenAndServe()
-}
-
-func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("welcome to week03"))
-}
-
-func bye(w http.ResponseWriter, r *http.Request) {
-	time.Sleep(4 * time.Second)
-	w.Write([]byte("bye bye,homework"))
 }
