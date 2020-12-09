@@ -28,7 +28,7 @@ func main() {
 			close(stop)
 		}
 		fmt.Println("信号监听结束.")
-		return errors.New("sigal error")
+		return errors.New("signal error")
 	})
 	server := http.Server{Addr: "127.0.0.1:8080"}
 	g.Go(func() error {
