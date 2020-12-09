@@ -30,7 +30,7 @@ func main() {
 		fmt.Println("信号监听结束.")
 		return errors.New("signal error")
 	})
-	server := http.Server{Addr: "127.0.0.1:8080"}
+	server := http.Server{Addr: "127.0.0.1:9999"}
 	group.Go(func() error {
 		go func() {
 			<-stop
@@ -47,7 +47,7 @@ func main() {
 
 	go func() {
 		fmt.Println("模拟请求数据")
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 10)
 		close(stop)
 	}()
 
