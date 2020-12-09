@@ -14,14 +14,14 @@ import (
 
 func main() {
 
-	g, _ := errgroup.WithContext(context.Background())
+	group, _ := errgroup.WithContext(context.Background())
 	sig := make(chan os.Signal, 1)
 	stop := make(chan struct{})
 
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
 
 	//处理信号
-	g.Go(func() error {
+	group.Go(func() error {
 		sig := <-sig
 		fmt.Println(sig)
 		if sig == syscall.SIGINT {
@@ -31,7 +31,7 @@ func main() {
 		return errors.New("signal error")
 	})
 	server := http.Server{Addr: "127.0.0.1:8080"}
-	g.Go(func() error {
+	group.Go(func() error {
 		go func() {
 			<-stop
 			sig <- syscall.SIGTERM
@@ -51,7 +51,7 @@ func main() {
 		close(stop)
 	}()
 
-	if err := g.Wait(); err != nil {
+	if err := group.Wait(); err != nil {
 		fmt.Printf("gorutine退出原因:%v\n", err)
 	}
 }
