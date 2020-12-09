@@ -46,8 +46,8 @@ func main() {
 	})
 
 	go func() {
-		fmt.Println("延迟五秒")
-		time.Sleep(time.Second * 5)
+		fmt.Println("模拟请求数据")
+		time.Sleep(time.Second * 3)
 		close(stop)
 	}()
 
