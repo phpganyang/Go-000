@@ -1,4 +1,4 @@
-package server
+package http
 
 import (
 	"Week04/api"
@@ -21,7 +21,7 @@ func New(svr *service.Service) (hsvr *HttpServer, cf func(), err error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(api.HelloUrl, func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodGet {
-			resp, err := svr.SayHello(ctx, &api.HelloReq{Id: 111})
+			resp, err := svr.SayHello(ctx, &api.Demo{Id: 111})
 			if err == nil {
 				w.Write([]byte(resp.Content))
 				w.WriteHeader(http.StatusOK)
